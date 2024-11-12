@@ -7,13 +7,13 @@
 %bcond_with check
 %endif
 
-%global ignedgecommit 35853ded31252937d3390970a89885478651c12e
+%global ignedgecommit b8d1b7a52c28fd5c33d15a0628d4b69f242f5c57
 %global ignedgeshortcommit %(c=%{ignedgecommit}; echo ${c:0:7})
 
 # https://github.com/coreos/ignition
 %global goipath         github.com/coreos/ignition
 %global gomodulesmode   GO111MODULE=on
-Version:                2.17.0
+Version:                2.19.0
 
 %gometa
 
@@ -22,7 +22,7 @@ Version:                2.17.0
 %global dracutlibdir %{_prefix}/lib/dracut
 
 Name:           ignition
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        First boot installer and configuration tool (RHEL CoreOS only)
 
 # Upstream license specification: Apache-2.0
@@ -30,8 +30,6 @@ License:        ASL 2.0
 URL:            %{gourl}
 Source0:        %{gosource}
 Source1:        https://github.com/fedora-iot/ignition-edge/archive/%{ignedgecommit}/ignition-edge-%{ignedgeshortcommit}.tar.gz
-
-Patch0: 0001-azure-retry-HTTP-requests-on-codes-404-410-and-429.patch
 
 BuildRequires: libblkid-devel
 BuildRequires: systemd-rpm-macros
@@ -354,6 +352,19 @@ install -p -m 0755 ./ignition %{buildroot}/%{dracutlibdir}/modules.d/30ignition
 %endif
 
 %changelog
+* Mon Sep 09 2024 Miguel Martín <mmartinv@redhat.com> - 2.19.0-3
+- Update ignition-edge commit to support FIPS
+    - https://github.com/fedora-iot/ignition-edge/pull/2
+
+* Tue Jul 02 2024 Joseph Marrero <jmarrero@fedoraproject.org> - 2.19.0-2
+- Rebuild of 2.19.0 with a newer golang
+
+* Wed Jun 12 2024 Steven Presti <spresti@redhat.com> - 2.19.0-1
+- New release
+
+* Thu Mar 07 2024 Yasmin Valim <ydesouza@redhat.com> - 2.18.0-1
+- New release
+
 * Fri Feb 09 2024 Timothée Ravier <tim@siosm.fr> - 2.17.0-2
 - Backport fix for unexpected Azure IMDS status codes
 
