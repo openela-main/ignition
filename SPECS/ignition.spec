@@ -13,7 +13,7 @@
 # https://github.com/coreos/ignition
 %global goipath         github.com/coreos/ignition
 %global gomodulesmode   GO111MODULE=on
-Version:                2.19.0
+Version:                2.20.0
 
 %gometa
 
@@ -22,7 +22,7 @@ Version:                2.19.0
 %global dracutlibdir %{_prefix}/lib/dracut
 
 Name:           ignition
-Release:        3%{?dist}
+Release:        1%{?dist}
 Summary:        First boot installer and configuration tool (RHEL CoreOS only)
 
 # Upstream license specification: Apache-2.0
@@ -352,6 +352,9 @@ install -p -m 0755 ./ignition %{buildroot}/%{dracutlibdir}/modules.d/30ignition
 %endif
 
 %changelog
+* Mon Nov 04 2024 Steven Presti <spresti@redhat.com> - 2.20.0-1
+- New release
+
 * Mon Sep 09 2024 Miguel Martín <mmartinv@redhat.com> - 2.19.0-3
 - Update ignition-edge commit to support FIPS
     - https://github.com/fedora-iot/ignition-edge/pull/2
