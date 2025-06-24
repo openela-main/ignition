@@ -1,0 +1,49 @@
+From 8db6a73a353aee31ac07a60c09c1d8a749f3234e Mon Sep 17 00:00:00 2001
+From: Etienne Champetier <e.champetier@ateme.com>
+Date: Mon, 17 Mar 2025 14:52:48 -0400
+Subject: [PATCH] Rename ignition.cfg -> 05_ignition.cfg
+
+When bootupd/grub2-static/configs.d was introduced,
+blscfg was after every config. Some config need to be after blscfg,
+so rename to 05_ignition.cfg so we can align bootupd numbering with
+legacy grub (blscfg is in 10_linux).
+---
+ Makefile                                | 2 +-
+ docs/release-notes.md                   | 2 ++
+ grub2/{ignition.cfg => 05_ignition.cfg} | 0
+ 3 files changed, 3 insertions(+), 1 deletion(-)
+ rename grub2/{ignition.cfg => 05_ignition.cfg} (100%)
+
+diff --git a/Makefile b/Makefile
+index 635b809f..2f3ed33c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -33,7 +33,7 @@ install: all
+ 	ln -sf ../lib/dracut/modules.d/30ignition/ignition $(DESTDIR)/usr/libexec/ignition-rmcfg
+ 
+ install-grub-for-bootupd:
+-	install -m 0644 -D -t $(DESTDIR)/usr/lib/bootupd/grub2-static/configs.d grub2/ignition.cfg
++	install -m 0644 -D -t $(DESTDIR)/usr/lib/bootupd/grub2-static/configs.d grub2/05_ignition.cfg
+ 
+ .PHONY: vendor
+ vendor:
+diff --git a/docs/release-notes.md b/docs/release-notes.md
+index 6829e671..ec3c1aa7 100644
+--- a/docs/release-notes.md
++++ b/docs/release-notes.md
+@@ -12,6 +12,8 @@ nav_order: 9
+ 
+ ### Changes
+ 
++- Rename ignition.cfg -> 05_ignition.cfg
++
+ ### Bug fixes
+ 
+ 
+diff --git a/grub2/ignition.cfg b/grub2/05_ignition.cfg
+similarity index 100%
+rename from grub2/ignition.cfg
+rename to grub2/05_ignition.cfg
+-- 
+2.48.1
+

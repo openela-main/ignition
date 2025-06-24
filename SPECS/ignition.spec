@@ -13,7 +13,7 @@
 # https://github.com/coreos/ignition
 %global goipath         github.com/coreos/ignition
 %global gomodulesmode   GO111MODULE=on
-Version:                2.20.0
+Version:                2.21.0
 
 %gometa
 
@@ -30,6 +30,8 @@ License:        ASL 2.0
 URL:            %{gourl}
 Source0:        %{gosource}
 Source1:        https://github.com/fedora-iot/ignition-edge/archive/%{ignedgecommit}/ignition-edge-%{ignedgeshortcommit}.tar.gz
+
+Patch0: 0001-Rename-ignition.cfg-05_ignition.cfg.patch
 
 BuildRequires: libblkid-devel
 BuildRequires: systemd-rpm-macros
@@ -218,6 +220,18 @@ It is only used for building release binaries to be signed by Fedora release
 engineering and uploaded to the Ignition GitHub releases page.
 %endif
 
+############## grub subpackage ##############
+
+%package grub
+Summary:  Enablement glue for bootupd's grub2 config
+License:  Apache-2.0
+
+# `ignition-grub` is a rename `ignition-ignition-grub` so let's obsolete `ignition-ignition-grub`
+Obsoletes: ignition-ignition-grub
+
+%description grub
+This package contains the grub2 config which is compatable with bootupd.
+
 ############## ignition-edge subpackage ##############
 
 %if 0%{?rhel} && !0%{?eln}
@@ -258,7 +272,8 @@ echo "Building ignition..."
 echo "Building ignition-validate..."
 %gobuild -o ./ignition-validate validate/main.go
 
-%global gocrossbuild go build -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x
+
+%global gocrossbuild go build -ldflags "${LDFLAGS:-} -B 0x$(cat /dev/urandom | tr -d -c '0-9a-f' | head -c16)" -a -v -x
 
 %if 0%{?fedora}
 echo "Building statically-linked Linux ignition-validate..."
@@ -269,6 +284,7 @@ CGO_ENABLED=0 GOARCH=amd64 GOOS=linux %gocrossbuild -o ./ignition-validate-x86_6
 
 echo "Building macOS ignition-validate..."
 GOARCH=amd64 GOOS=darwin %gocrossbuild -o ./ignition-validate-x86_64-apple-darwin validate/main.go
+GOARCH=arm64 GOOS=darwin %gocrossbuild -o ./ignition-validate-aarch64-apple-darwin validate/main.go
 
 echo "Building Windows ignition-validate..."
 GOARCH=amd64 GOOS=windows %gocrossbuild -o ./ignition-validate-x86_64-pc-windows-gnu.exe validate/main.go
@@ -283,12 +299,18 @@ install -m 0755 -d %{buildroot}/%{_libexecdir}
 ln -sf ../lib/dracut/modules.d/30ignition/ignition %{buildroot}/%{_libexecdir}/ignition-apply
 ln -sf ../lib/dracut/modules.d/30ignition/ignition %{buildroot}/%{_libexecdir}/ignition-rmcfg
 
+
+# grub
+install -d -p %{buildroot}%{_prefix}/lib/bootupd/grub2-static/configs.d
+install -p -m 0644 grub2/05_ignition.cfg  %{buildroot}%{_prefix}/lib/bootupd/grub2-static/configs.d/
+
 # ignition
 install -d -p %{buildroot}%{_bindir}
 install -p -m 0755 ./ignition-validate %{buildroot}%{_bindir}
 
 %if 0%{?fedora}
 install -d -p %{buildroot}%{_datadir}/ignition
+install -p -m 0644 ./ignition-validate-aarch64-apple-darwin %{buildroot}%{_datadir}/ignition
 install -p -m 0644 ./ignition-validate-aarch64-unknown-linux-gnu-static %{buildroot}%{_datadir}/ignition
 install -p -m 0644 ./ignition-validate-ppc64le-unknown-linux-gnu-static %{buildroot}%{_datadir}/ignition
 install -p -m 0644 ./ignition-validate-s390x-unknown-linux-gnu-static %{buildroot}%{_datadir}/ignition
@@ -328,6 +350,7 @@ install -p -m 0755 ./ignition %{buildroot}/%{dracutlibdir}/modules.d/30ignition
 %files validate-redistributable
 %license %{golicenses}
 %dir %{_datadir}/ignition
+%{_datadir}/ignition/ignition-validate-aarch64-apple-darwin
 %{_datadir}/ignition/ignition-validate-aarch64-unknown-linux-gnu-static
 %{_datadir}/ignition/ignition-validate-ppc64le-unknown-linux-gnu-static
 %{_datadir}/ignition/ignition-validate-s390x-unknown-linux-gnu-static
@@ -335,6 +358,11 @@ install -p -m 0755 ./ignition %{buildroot}/%{dracutlibdir}/modules.d/30ignition
 %{_datadir}/ignition/ignition-validate-x86_64-pc-windows-gnu.exe
 %{_datadir}/ignition/ignition-validate-x86_64-unknown-linux-gnu-static
 %endif
+
+%files grub
+%doc README.md
+%license %{golicenses}
+%{_prefix}/lib/bootupd/grub2-static/configs.d/05_ignition.cfg
 
 %if 0%{?rhel} && !0%{?eln}
 %files edge
@@ -352,6 +380,12 @@ install -p -m 0755 ./ignition %{buildroot}/%{dracutlibdir}/modules.d/30ignition
 %endif
 
 %changelog
+* Thu Mar 24 2025 Yasmin Valim <ydesouza@redhat.com> - 2.21.0-1
+- Re-sync with upstream changes adding ignition-grub subpackage
+  and a few minor changes
+- New release
+
+
 * Mon Nov 04 2024 Steven Presti <spresti@redhat.com> - 2.20.0-1
 - New release
 
