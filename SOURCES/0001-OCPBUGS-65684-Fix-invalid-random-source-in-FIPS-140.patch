@@ -1,0 +1,95 @@
+From a33a8402a215f008c22ac52c885606117adba6c5 Mon Sep 17 00:00:00 2001
+From: Tiago Bueno <tiago.bueno@gmail.com>
+Date: Mon, 17 Nov 2025 21:44:24 -0300
+Subject: [PATCH] OCPBUGS-65684: Fix invalid random source in FIPS 140-only
+ mode in FIPS mode
+
+When igntion is compiled with GOEXPERIMENT=strictfipsruntime and
+running in a computer with FIPS enabled, the random source is invalid.
+
+When FIPS is enabled, instead of use a custom random on TLS config,
+do not set a random source at all as it will use crypto/rand.Reader by
+default
+
+Co-authored-by: Steven Presti <47181335+prestist@users.noreply.github.com>
+Co-authored-by: Dusty Mabe <dusty@dustymabe.com>
+
+Signed-off-by: Tiago Bueno <tiago.bueno@gmail.com>
+---
+ internal/resource/http.go | 49 ++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 44 insertions(+), 6 deletions(-)
+
+diff --git a/internal/resource/http.go b/internal/resource/http.go
+index 197f5731..aae40e90 100644
+--- a/internal/resource/http.go
++++ b/internal/resource/http.go
+@@ -25,6 +25,7 @@ import (
+ 	"net"
+ 	"net/http"
+ 	"net/url"
++	"os"
+ 	"strings"
+ 	"time"
+ 
+@@ -218,16 +219,52 @@ func (f *Fetcher) RewriteCAsWithDataUrls(cas []types.Resource) error {
+ 	return nil
+ }
+ 
+-// DefaultHTTPClient builds the default `http.client` for Ignition.
+-func defaultHTTPClient() (*http.Client, error) {
+-	urand, err := earlyrand.UrandomReader()
++func isFIPSEnabled() bool {
++	data, err := os.ReadFile("/proc/sys/crypto/fips_enabled")
+ 	if err != nil {
+-		return nil, err
++		// If the file doesn't exist or can't be read, assume FIPS is not enabled
++		return false
+ 	}
++	// Check if the content is "1" (with or without trailing newline)
++	return len(data) > 0 && data[0] == '1'
++}
+ 
+-	tlsConfig := tls.Config{
+-		Rand: urand,
++// DefaultHTTPClient builds the default `http.client` for Ignition.
++func defaultHTTPClient() (*http.Client, error) {
++	var tlsConfig tls.Config
++
++	if isFIPSEnabled() {
++		// In FIPS mode (GOEXPERIMENT=strictfipsruntime), we can't set a random source.
++		// Setting a custom random source like /dev/urandom causes the error:
++		// "crypto/ecdh: invalid random source in FIPS 140-only mode"
++		tlsConfig = tls.Config{}
++	} else {
++		// In non-FIPS mode let's use the `earlyrand.UrandomReader()`
++		// this source reads from `/dev/urandom` (`man urandom`) rather
++		// than calling the `getrandom` API (`man getrandom`).
++		//
++		//   > When  read, the /dev/urandom device returns random bytes
++		//   > using a pseudorandom number generator seeded from the entropy
++		//   > pool. Reads from this device do not block (i.e., the CPU is
++		//   > not yielded)
++		//
++		// This is a tradeoff to not block early boot because:
++		//
++		//   > When read during early boot time, /dev/urandom may return
++		//   > data prior to the entropy pool being initialized. If this
++		//   > is of concern in your application, use getrandom(2) or
++		//   > /dev/random instead.
++		//
++		// See https://github.com/coreos/ignition/issues/645
++		urand, err := earlyrand.UrandomReader()
++		if err != nil {
++			return nil, err
++		}
++		tlsConfig = tls.Config{
++			Rand: urand,
++		}
+ 	}
++
+ 	transport := http.Transport{
+ 		ResponseHeaderTimeout: time.Duration(defaultHttpResponseHeaderTimeout) * time.Second,
+ 		Dial: (&net.Dialer{
+-- 
+2.50.1 (Apple Git-155)
+
