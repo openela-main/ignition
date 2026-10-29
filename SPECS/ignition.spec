@@ -22,7 +22,7 @@ Version:                2.26.0
 %global dracutlibdir %{_prefix}/lib/dracut
 
 Name:           ignition
-Release:        1%{?dist}
+Release:        1%{?dist}.2
 Summary:        First boot installer and configuration tool (RHEL CoreOS only)
 
 # Upstream license specification: Apache-2.0
@@ -389,6 +389,13 @@ install -p -m 0755 ./ignition %{buildroot}/%{dracutlibdir}/modules.d/30ignition
 %endif
 
 %changelog
+* Thu Oct 22 2026 RHEL Packaging Agent <redhat-ymir-agent@redhat.com> - 2.26.0-1.2
+- Rebuild with updated golang
+
+* Thu May 28 2026 RHEL Packaging Agent <redhat-ymir-agent@redhat.com> - 2.26.0-1.1
+- Rebuild with updated golang
+- Resolves: RHEL-175424, RHEL-177307
+
 * Mon Mar 09 2026 Yasmin de Souza <ydesouza@redhat.com> - 2.26.0-1
 - new version
 
